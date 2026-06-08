@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Check if the docker daemon is even running first
+#!/bin/bash
+
+# Redirect all standard system errors to nowhere so they never corrupt our JSON string
+exec 2>/dev/null
+
+# Check if the docker daemon is running
+if ! systemctl is-active --quiet docker; then
+    echo '{"text": "󱖟 Off", "tooltip": "Docker daemon is not running."}'
+    exit 0
+
+fi
+
+# 1. Gather stats safely
+RUNNING_CONTAINERS=$(docker ps -q 2>/dev/null | wc -l)
+TOTAL_CONTAINERS=$(docker ps -a -q 2>/dev/null | wc -l)
+
+# If the command failed entirely (e.g. permission issues), fall back safely
+if [ $? -ne 0 ]; then
+    echo '{"text": "🐳 Err", "tooltip": "Permission denied. Run: sudo usermod -aG docker $USER and reboot."}'
+    exit 0
+fi
+
+# 2. Extract CPU and Memory loads smoothly
+CPU_PERC=$(docker stats --no-stream --format "{{.CPUPerc}}" 2>/dev/null | sed 's/%//' | awk '{s+=$1} END {print s}')
+MEM_PERC=$(docker stats --no-stream --format "{{.MemPerc}}" 2>/dev/null | sed 's/%//' | awk '{s+=$1} END {print s}')
+
+CPU_PERC=${CPU_PERC:-0}
+MEM_PERC=${MEM_PERC:-0}
+
+
+# 3. Format text output
+TOOLTIP_TEXT="📦 Docker Infrastructure\n------------------------\n▶ Active Pods: ${RUNNING_CONTAINERS}\n📊 Total Configured: ${TOTAL_CONTAINERS}\n\n🔥 Stack CPU Load: ${CPU_PERC}%\n🧠 Stack Mem Load: ${MEM_PERC}%"
+
+if [ "$RUNNING_CONTAINERS" -gt 0 ]; then
+    TEXT="󰏖 ${RUNNING_CONTAINERS} Active"
+else
+    TEXT="󰏖 Standby"
+fi
+# 4. Use a rock-solid printf format to output perfectly clean JSON structures
+printf '{"text": "%s", "tooltip": "%s"}\n' "$TEXT" "$TOOLTIP_TEXT"

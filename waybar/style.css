@@ -1,0 +1,110 @@
+/* Reset global bar background to fully transparent so pills can float */
+window#waybar {
+    background-color: transparent;
+    font-family: "JetBrains Mono", "Font Awesome 6 Free", sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* 1. Global styling for EVERY pill container on the bar */
+#workspaces,
+#clock,
+#custom-weather,
+#pulseaudio,
+#custom-uptime,
+#backlight,
+#battery,
+#network,
+#cpu,
+#memory,
+#custom-docker,
+#tray,
+#custom-lock,
+#custom-power {
+    background-color: rgba(30, 22, 20, 0.85); /* Dark charcoal from Mars soil shadows */
+    border: 1px solid #7a4338;                  /* Rugged Deep Iron Rust outline */
+    color: #d8c8c4;                             /* Soft desert sand text color */
+    padding: 2px 12px;
+    margin-top: 8px;                           /* Pulls the bar down slightly to float */
+}
+
+/* 2. Left Pill Group (Workspaces) */
+#workspaces {
+    border-radius: 10px;
+    margin-left: 12px;
+}
+
+#workspaces button {
+    color: #7a4338; /* Inactive workspace dots stay dark rust */
+    background: transparent;
+    border: none;
+    padding: 0px 4px;
+}
+
+#workspaces button.active {
+    color: #b07c6e; /* Your active workspace dot glows in sun-baked sand */
+}
+
+#workspaces button:hover {
+    color: #ffffff;
+    background-color: rgba(176, 124, 110, 0.2);
+    border-radius: 6px;
+}
+
+/* 3. Center Pill Group (Clock & Weather) */
+#clock {
+    border-radius: 10px 0px 0px 10px;
+    border-right: none; /* Merges the clock and weather modules together seamlessly */
+    color: #ffffff;     /* Highlights the clock time in crisp white */
+}
+
+#custom-weather {
+    border-radius: 0px 10px 10px 0px;
+    border-left: none;
+    color: #b07c6e;    /* Weather updates match the bright rock tint */
+}
+
+/* 4. Right Pill Group (System Stats & Core Monitors) */
+/* This specific trick welds your right-side modules into one beautiful long tray */
+#pulseaudio    { border-radius: 10px 0px 0px 10px; }
+#custom-power  { border-radius: 0px 10px 10px 0px; margin-right: 12px; color: #e64553; }
+
+#custom-uptime, #backlight, #battery, #network, #cpu, #memory, #custom-docker, #tray, #custom-lock {
+    border-radius: 0px;
+    border-left: none;
+}
+
+/* Highlights the text colors inside your hardware meters for easy reading */
+#cpu {
+    color: #b07c6e;
+}
+
+#memory {
+    color: #d8c8c4;
+}
+
+#network {
+    color: #b07c6e;
+}
+
+#custom-docker {
+    color: #3498db; /* Keeps a nice clean digital container blue for Docker */
+}
+
+/* Battery Alert Animations */
+#battery.critical:not(.charging) {
+    background-color: #7a4338;
+    color: #ffffff;
+    animation-name: blink;
+    animation-duration: 0.5s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes blink {
+    to {
+        background-color: rgba(176, 124, 110, 0.8);
+        color: #ffffff;
+    }
+}
