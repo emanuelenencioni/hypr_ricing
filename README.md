@@ -1,4 +1,4 @@
-# 🪐 my-ricing
+# 🪐 hypr-mars
 
 A minimalist, high-performance **Martian Command Center** desktop environment configuration built for Arch Linux using the Hyprland compositor. 
 
