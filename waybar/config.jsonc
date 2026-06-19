@@ -71,7 +71,7 @@
   "custom/uptime": {
     "format": "{}",
     "interval": 1600,
-    "exec": "sh -c '(uptime -p)'"
+    "exec": "sh -c \"uptime -p | sed 's/hours/h/g; s/hour/h/g; s/minutes/m/g; s/minute/m/g'\""
   },
 
   "pulseaudio": {
