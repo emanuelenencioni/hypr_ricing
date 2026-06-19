@@ -1,6 +1,6 @@
 # 🪐 hypr-mars
 
-A minimalist, high-performance **Martian Command Center** desktop environment configuration built for Arch Linux using the Hyprland compositor. 
+A minimalist, high-performance configuration built for Arch Linux using the Hyprland compositor. 
 
 This setup features deep volcanic-charcoal shadows, rugged iron-rust accents, micro-thin borders, unified iconography, and active system telemetry feeds.
 
