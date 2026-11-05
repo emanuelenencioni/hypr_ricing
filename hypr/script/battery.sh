@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get the first battery found
-BATTERY_DIR="/sys/class/power_supply/BAT0"
+BATTERY_DIR="/sys/class/power_supply/BAT0" # Common battery name, adjust if yours is different
 if [ ! -d "$BATTERY_DIR" ]; then
     BATTERY_DIR="/sys/class/power_supply/$(ls /sys/class/power_supply/ | grep '^BAT' | head -n 1)"
 fi
@@ -17,10 +17,10 @@ STATUS=$(cat "$BATTERY_DIR/status")
 ICON=""
 
 if [ "$STATUS" = "Charging" ]; then
-    ICON=""
+    ICON="" # Charging icon
 elif [ "$STATUS" = "Full" ]; then
-    ICON="󰁹"
-else
+    ICON="󰁹" # Full icon
+else # Discharging
     if [ "$CAPACITY" -ge 90 ]; then
         ICON="󰂂"
     elif [ "$CAPACITY" -ge 80 ]; then
