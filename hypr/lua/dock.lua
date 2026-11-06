@@ -10,9 +10,9 @@
 --                             (offset = desk panel's real width, or
 --                              its nominal width if it has no mode)
 --   home monitor, lid shut -> eDP-1 off
--- Event handlers react immediately; a watchdog timer re-converges
--- any drift (missed events, reload side effects, plug races) within
--- seconds, so the state always self-heals.
+-- Event handlers react immediately, and every settle event
+-- re-converges any drift (missed events, reload side effects, plug
+-- races), so the state self-heals without polling.
 
 local PANELS         = require("lua/panels")
 local HOME_PANEL     -- the home-desk entry from the registry
@@ -24,9 +24,31 @@ for _, p in ipairs(PANELS) do
     end
 end
 
-local laptop_enabled = true  -- mirrors the last applied panel state
-local laptop_left    = false -- panel placed left of the desk monitor
-local lid_closed     = false -- lid closed while at the desk
+-- Lid state must be seeded from hardware, not assumed open: the lid
+-- switch event does not replay on a config reload, so a module-local
+-- default of false would make every reload re-enable the laptop panel
+-- while the lid is still physically shut.
+local LID_STATE_PATHS = {
+    "/proc/acpi/button/lid/LID/state",
+    "/proc/acpi/button/lid/LID0/state",
+    "/proc/acpi/button/lid/LID1/state",
+}
+
+local function lid_is_closed()
+    for _, path in ipairs(LID_STATE_PATHS) do
+        local f = io.open(path, "r")
+        if f then
+            local state = f:read("*a") or ""
+            f:close()
+            return state:find("closed", 1, true) ~= nil
+        end
+    end
+    return false -- no ACPI lid node: treat as a desktop, lid never shuts
+end
+
+local laptop_enabled = true            -- mirrors the last applied panel state
+local laptop_left    = false           -- panel placed left of the desk monitor
+local lid_closed     = lid_is_closed() -- lid closed while at the desk
 
 local function home_monitor()
     if HOME_PANEL == nil then
@@ -94,18 +116,19 @@ hl.on("monitor.removed", function(m)
     end
 end)
 
--- Delayed sync after startup/reload: output probing (especially
--- slow-EDID external panels) may not be finished when the event
--- fires. Later events and the watchdog correct any early mistake.
-local function delayed_sync()
-    hl.timer(enforce, { timeout = 1500, type = "oneshot" })
-end
-
-hl.on("hyprland.start", delayed_sync)
-hl.on("config.reloaded", delayed_sync)
-
--- Watchdog: fix any state drift within seconds
-hl.timer(enforce, { timeout = 5000, type = "repeat" })
+-- Convergence triggers. Deliberately no hl.timer: in Hyprland 0.57.0
+-- a Lua timer leaves a dangling CEventLoopTimer behind, and
+-- CConfigManager::cleanTimers() then segfaults in
+-- CEventLoopManager::removeTimer() whenever the config manager is torn
+-- down -- config reload, logout, or `Hyprland --verify-config`.
+--
+-- set_laptop() already falls back to the panel's nominal width when a
+-- slow-EDID output has no mode yet, so the old 1500 ms delayed sync is
+-- not needed; later settle events correct any early mistake.
+hl.on("hyprland.start",         enforce)
+hl.on("config.reloaded",        enforce)
+hl.on("config.props_refreshed", enforce)
+hl.on("monitor.layout_changed", enforce)
 
 -- Lid switch handling (replaces the old dock_detect acpid/udev scripts).
 -- Suspend-on-lid-close while docked is already suppressed by logind's

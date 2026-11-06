@@ -6,9 +6,10 @@
 -- hl.get_monitors() ourselves and apply rules using the plain
 -- connector name, which does apply.
 --
--- A watchdog re-applies rules when a known panel is found stuck at
--- 0x0 (kernel rejecting every modeset). Each retry steps down the
--- panel's mode fallback chain instead of repeating the same mode.
+-- Rules are re-applied on settle events when a known panel is found
+-- stuck at 0x0 (kernel rejecting every modeset). Each retry steps
+-- down the panel's mode fallback chain instead of repeating the same
+-- mode. Event-driven on purpose: see heal_stuck_panels() below.
 
 local PANELS = require("lua/panels")
 
@@ -77,20 +78,20 @@ hl.on("monitor.added", function(m)
     end
 end)
 
--- Watchdog: heal panels stuck at 0x0 (present but no mode applied).
--- Throttled to one retry per ~15s; consecutive retries walk down the
--- mode fallback chain so a rejected primary mode does not loop
--- forever. The chain resets once the panel reports a real mode.
-local TICK_MS  = 5000
-local EVERY    = 3
-local tick     = 0
+-- Heal panels stuck at 0x0 (present but no mode applied).
+--
+-- Driven by settle events rather than a polling hl.timer: in Hyprland
+-- 0.57.0 a Lua timer leaves a dangling CEventLoopTimer behind, and
+-- CConfigManager::cleanTimers() then segfaults in
+-- CEventLoopManager::removeTimer() whenever the config manager is torn
+-- down -- config reload, logout, or `Hyprland --verify-config`.
+--
+-- Each settle event steps one further down the panel's mode fallback
+-- chain, so a rejected primary mode still does not loop forever, and
+-- the chain resets as soon as the panel reports a real mode.
 local attempts = {} -- panel.name -> retry count while unhealthy
 
-hl.timer(function()
-    tick = tick + 1
-    if (tick - 1) % EVERY ~= 0 then
-        return
-    end
+local function heal_stuck_panels()
     for _, panel in ipairs(PANELS) do
         local m = find_panel(panel)
         if m ~= nil and (m.width == nil or m.height == nil or m.width == 0 or m.height == 0) then
@@ -102,4 +103,7 @@ hl.timer(function()
             attempts[panel.name] = nil -- healthy again: reset the chain
         end
     end
-end, { timeout = TICK_MS, type = "repeat" })
+end
+
+hl.on("monitor.layout_changed", heal_stuck_panels)
+hl.on("config.props_refreshed", heal_stuck_panels)
